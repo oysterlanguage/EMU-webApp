@@ -62,11 +62,56 @@
           padding-bottom:5px;
           z-index: 5;
         }
-		    > .emuwebapp-canvas {
+        > .emuwebapp-canvas {
           flex: 1;
           position:relative;
           z-index:1;
           @include vendor-prefix(user-select, none);
+        }
+        > .emuwebapp-shortcuts {
+          background: darken($color-blue, 10%);
+          color: $color-white;
+          border-top: 1px solid rgba(0,0,0,0.2);
+          padding: 10px 20px;
+          font-size: 0.85em;
+          @extend .emuwebapp-font-small;
+          .emuwebapp-shortcuts__content {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+          h4 {
+            margin: 0;
+            font-size: 1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+          }
+          li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+          }
+          kbd {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.85em;
+            font-family: 'Courier New', Courier, monospace;
+          }
         }
       }
     }

@@ -766,11 +766,15 @@ class LevelService{
 	* adds a level by its name
 	*/
 	public insertLevel(originalLevel, levelIndex, curPerspectiveIdx) {
+		console.log('[EMU] LevelService.insertLevel called', angular.copy(originalLevel), levelIndex, curPerspectiveIdx);
 		if (this.DataService.getLevelData() === undefined) {
 			this.DataService.setLevelData([]);
 		}
+		console.log('[EMU] LevelService inserting at index', levelIndex, 'current levels', angular.copy(this.DataService.getLevelData()));
 		this.DataService.insertLevelDataAt(levelIndex, originalLevel);
 		this.ConfigProviderService.vals.perspectives[curPerspectiveIdx].levelCanvases.order.splice(levelIndex, 0, originalLevel.name);
+		console.log('[EMU] LevelService post-insert levels', angular.copy(this.DataService.getLevelData()));
+		console.log('[EMU] LevelService updated order', angular.copy(this.ConfigProviderService.vals.perspectives[curPerspectiveIdx].levelCanvases.order));
 	};
 	
 	/**

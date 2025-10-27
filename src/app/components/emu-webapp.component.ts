@@ -52,7 +52,7 @@ let EmuWebAppComponent = {
                 <button class="emuwebapp-mini-btn left" 
                 ng-show="$ctrl.ConfigProviderService.vals.activeButtons.addLevelSeg" 
                 ng-disabled="!$ctrl.ViewStateService.getPermission('addLevelSegBtnClick')" 
-                ng-click="addLevelSegBtnClick();">add level (SEG.)</button>
+                ng-click="$ctrl.addLevelSegBtnClick();">add level (SEG.)</button>
                 
                 <button class="emuwebapp-mini-btn left" 
                 ng-show="$ctrl.ConfigProviderService.vals.activeButtons.addLevelEvent" 
@@ -338,6 +338,22 @@ let EmuWebAppComponent = {
             <!-- start: perspectives menu bar (right) -->
 			<perspectives-side-bar></perspectives-side-bar>
             <!-- end: perspectives menu bar (right) -->
+
+            <!-- start: shortcuts footer -->
+            <div class="emuwebapp-shortcuts">
+                <div class="emuwebapp-shortcuts__content">
+                    <h4>Keyboard Shortcuts</h4>
+                    <ul>
+                        <li><kbd>Space</kbd> Play / pause audio</li>
+                        <li><kbd>Shift</kbd> + scroll Zoom in / out</li>
+                        <li><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo &nbsp;&nbsp; <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> Redo</li>
+                        <li><kbd>Alt</kbd> + drag Move boundary &nbsp;&nbsp; <kbd>Shift</kbd> + drag Resize selection</li>
+                        <li><kbd>Ctrl</kbd> + click Split segment &nbsp;&nbsp; <kbd>Delete</kbd> Remove segment</li>
+                        <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd> Merge segments (remove boundary)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- end: shortcuts footer -->
         </div>
         <!-- end: main window -->
     </div>
@@ -1164,32 +1180,44 @@ let EmuWebAppComponent = {
 		 *
 		 */
 		private addLevelSegBtnClick() {
+			console.log('[EMU] addLevelSegBtnClick invoked');
 			if (this.ViewStateService.getPermission('addLevelSegBtnClick')) {
+				console.log('[EMU] Permission granted for addLevelSegBtnClick');
 				var length = 0;
 				if (this.DataService.data.levels !== undefined) {
 					length = this.DataService.data.levels.length;
 				}
 				var newName = 'levelNr' + length;
-			var level = {
-				items: [],
-				name: newName,
-				type: 'SEGMENT'
-			};
-
-			if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
-				var leveldef = {
-					'name': newName,
-					'type': 'SEGMENT',
-					'attributeDefinitions': [
-						{
-							'name': newName,
-							'type': 'string'
-						}
-					]
+				console.log('[EMU] Creating SEGMENT level:', newName);
+				var level = {
+					items: [],
+					name: newName,
+					type: 'SEGMENT'
 				};
-				this.ViewStateService.setCurLevelAttrDefs(leveldef);
-			}
+
+				if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
+					var leveldef = {
+						'name': newName,
+						'type': 'SEGMENT',
+						'attributeDefinitions': [
+							{
+								'name': newName,
+								'type': 'string'
+							}
+						]
+					};
+					if (!Array.isArray(this.ConfigProviderService.curDbConfig.levelDefinitions)) {
+						this.ConfigProviderService.curDbConfig.levelDefinitions = [];
+					}
+					this.ConfigProviderService.curDbConfig.levelDefinitions.push(leveldef);
+					console.log('[EMU] Added SEGMENT level definition', angular.copy(leveldef));
+					this.ViewStateService.setCurLevelAttrDefs(leveldef);
+				} else {
+					console.log('[EMU] SEGMENT level definition already exists for', newName);
+				}
+
 				this.LevelService.insertLevel(level, length, this.ViewStateService.curPerspectiveIdx);
+				console.log('[EMU] Level list after SEGMENT insert', angular.copy(this.DataService.data.levels));
 				//  Add to history
 				this.HistoryService.addObjToUndoStack({
 					'type': 'ANNOT',
@@ -1199,6 +1227,9 @@ let EmuWebAppComponent = {
 					'curPerspectiveIdx': this.ViewStateService.curPerspectiveIdx
 				});
 				this.ViewStateService.selectLevel(false, this.ConfigProviderService.vals.perspectives[this.ViewStateService.curPerspectiveIdx].levelCanvases.order, this.LevelService); // pass in LevelService to prevent circular deps
+				console.log('[EMU] Level order after SEGMENT insert', angular.copy(this.ConfigProviderService.vals.perspectives[this.ViewStateService.curPerspectiveIdx].levelCanvases.order));
+			} else {
+				console.warn('[EMU] Permission denied for addLevelSegBtnClick');
 			}
 		};
 
@@ -1207,12 +1238,15 @@ let EmuWebAppComponent = {
 		 */
 		private addLevelPointBtnClick () {
 
+			console.log('[EMU] addLevelPointBtnClick invoked');
 			if (this.ViewStateService.getPermission('addLevelPointBtnClick')) {
+				console.log('[EMU] Permission granted for addLevelPointBtnClick');
 				var length = 0;
 				if (this.DataService.data.levels !== undefined) {
 					length = this.DataService.data.levels.length;
 				}
 				var newName = 'levelNr' + length;
+				console.log('[EMU] Creating EVENT level:', newName);
 				var level = {
 					items: [],
 					name: newName,
@@ -1228,10 +1262,18 @@ let EmuWebAppComponent = {
 							type: 'string'
 						}
 					]
-				};
-				this.ViewStateService.setCurLevelAttrDefs(leveldef);
-			}
+					};
+					if (!Array.isArray(this.ConfigProviderService.curDbConfig.levelDefinitions)) {
+						this.ConfigProviderService.curDbConfig.levelDefinitions = [];
+					}
+					this.ConfigProviderService.curDbConfig.levelDefinitions.push(leveldef);
+					console.log('[EMU] Added EVENT level definition', angular.copy(leveldef));
+					this.ViewStateService.setCurLevelAttrDefs(leveldef);
+				} else {
+					console.log('[EMU] EVENT level definition already exists for', newName);
+				}
 				this.LevelService.insertLevel(level, length, this.ViewStateService.curPerspectiveIdx);
+				console.log('[EMU] Level list after EVENT insert', angular.copy(this.DataService.data.levels));
 				//  Add to history
 				this.HistoryService.addObjToUndoStack({
 					'type': 'ANNOT',
@@ -1241,6 +1283,9 @@ let EmuWebAppComponent = {
 					'curPerspectiveIdx': this.ViewStateService.curPerspectiveIdx
 				});
 				this.ViewStateService.selectLevel(false, this.ConfigProviderService.vals.perspectives[this.ViewStateService.curPerspectiveIdx].levelCanvases.order, this.LevelService); // pass in LevelService to prevent circular deps
+				console.log('[EMU] Level order after EVENT insert', angular.copy(this.ConfigProviderService.vals.perspectives[this.ViewStateService.curPerspectiveIdx].levelCanvases.order));
+			} else {
+				console.warn('[EMU] Permission denied for addLevelPointBtnClick');
 			}
 		};
 
