@@ -2,8 +2,8 @@ import * as angular from 'angular';
 
 let BundleListSideBarComponent = {
 	selector: "bundleListSideBar",
-	template: /*html*/`
-	<div class="emuwebapp-bundle-outer">
+template: /*html*/`
+	<div class="emuwebapp-bundle-outer" ng-style="$ctrl.bundleListStyle">
 	<div>
 		<h3>
 			<div>
@@ -99,6 +99,7 @@ bindings: {
 	open: '<'
 },
 controller: [
+	'$scope',
 	'$element', 
 	'$animate', 
 	'ViewStateService', 
@@ -109,6 +110,7 @@ controller: [
 	'LevelService',
 	class BundleListSideBarController{
 
+	private $scope;
 	private $element;
 	private $animate;
 	private ViewStateService;
@@ -125,7 +127,11 @@ controller: [
 	private _inited;
 
 
+	private bundleListWidth;
+	private bundleListStyle;
+
 	constructor(
+		$scope,
 		$element, 
 		$animate, 
 		ViewStateService, 
@@ -135,6 +141,7 @@ controller: [
 		ConfigProviderService, 
 		LevelService
 		){
+		this.$scope = $scope;
 		this.$element = $element;
 		this.$animate = $animate;
 
@@ -152,8 +159,14 @@ controller: [
 		this.ViewStateService.pageSize = 500;
 		this.ViewStateService.currentPage = 0;
 
+		this.bundleListWidth = 240;
+		this.bundleListStyle = { width: this.bundleListWidth + 'px' };
+
 		this._inited = false;
 
+		this.$scope.$watch(() => this.LoadedMetaDataService.getBundleList(), () => {
+			this.recomputeSidebarWidth();
+		}, true);
 	}
 	$postLink () {
 
@@ -175,7 +188,33 @@ controller: [
 
 	$onInit () {
 		this._inited = true;
+		this.recomputeSidebarWidth();
 	}
+	private recomputeSidebarWidth () {
+		const bundles = this.LoadedMetaDataService.getBundleList();
+		const baseWidth = 240;
+		const maxWidth = 560;
+		const charWidth = 9;
+		const padding = 120;
+		let longest = 0;
+		if (Array.isArray(bundles)) {
+			bundles.forEach((bundle) => {
+				if (bundle && bundle.name) {
+					const length = String(bundle.name).length;
+					if (length > longest) {
+						longest = length;
+					}
+				}
+			});
+		}
+		const computedWidth = Math.min(maxWidth, Math.max(baseWidth, longest * charWidth + padding));
+		if (this.bundleListWidth !== computedWidth) {
+			this.bundleListWidth = computedWidth;
+			this.bundleListStyle = {
+				width: `${this.bundleListWidth}px`
+			};
+		}
+	};
 	// functions from directive 
 	private finishedEditing (finished, key, index) {
 		this.HistoryService.addObjToUndoStack({

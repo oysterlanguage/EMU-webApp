@@ -11,6 +11,7 @@
 .emuwebapp-bundle-outer {
     height: 100%;
     width: 240px;
+    min-width: 240px;
     background: $color-grey;
     color: $color-white;
     margin-left: 0;
@@ -126,12 +127,14 @@
     border-bottom:thin solid rgba(152, 152, 152, 0.25);
     position: relative;
     cursor: pointer;
-    width: 190px !important;
+    width: 100%;
+    box-sizing: border-box;
     &:hover {
         background-color:rgba(152, 152, 152, 0.28);
     }
     input[type='text'] {
-        width: 170px;
+        width: 100%;
+        max-width: 100%;
         height: 25px;
         font-size: 1.4em;
     }
@@ -141,9 +144,10 @@
         font-weight: 500;
         cursor: pointer;
         width: 100%;
-        height: 30px;
-        overflow-x: auto;
-        overflow-y: hidden;
+        height: auto;
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
     }
 }
 
