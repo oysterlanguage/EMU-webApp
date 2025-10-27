@@ -4,17 +4,32 @@
 	"type": "object",
 	"properties": {
 		"mediaFile": {
-			"type": "object",
-			"properties": {
-				"encoding": {
-					"enum": ["BASE64", "GETURL"]
+			"oneOf": [
+				{
+					"type": "object",
+					"properties": {
+						"encoding": {
+							"enum": ["BASE64", "GETURL"]
+						},
+						"data": {
+							"type": "string"
+						}
+					},
+					"required": ["encoding", "data"],
+					"additionalProperties": false
 				},
-				"data": {
-					"type": "string"
+				{
+					"type": "object",
+					"properties": {
+						"encoding": {
+							"enum": ["ARRAYBUFFER"]
+						},
+						"data": {}
+					},
+					"required": ["encoding", "data"],
+					"additionalProperties": false
 				}
-			},
-			"required": ["encoding", "data"],
-			"additionalProperties": false
+			]
 		},
 		"annotation": {
 			"$ref": "annotationFileSchema.json"
