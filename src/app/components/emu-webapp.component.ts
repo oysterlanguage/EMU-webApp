@@ -1170,23 +1170,25 @@ let EmuWebAppComponent = {
 					length = this.DataService.data.levels.length;
 				}
 				var newName = 'levelNr' + length;
-				var level = {
-					items: [],
-					name: newName,
-					type: 'SEGMENT'
-				};
+			var level = {
+				items: [],
+				name: newName,
+				type: 'SEGMENT'
+			};
 
-				if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
-					var leveldef = {
-						'name': newName,
-						'type': 'EVENT',
-						'attributeDefinitions': {
+			if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
+				var leveldef = {
+					'name': newName,
+					'type': 'SEGMENT',
+					'attributeDefinitions': [
+						{
 							'name': newName,
 							'type': 'string'
 						}
-					};
-					this.ViewStateService.setCurLevelAttrDefs(leveldef);
-				}
+					]
+				};
+				this.ViewStateService.setCurLevelAttrDefs(leveldef);
+			}
 				this.LevelService.insertLevel(level, length, this.ViewStateService.curPerspectiveIdx);
 				//  Add to history
 				this.HistoryService.addObjToUndoStack({
@@ -1216,17 +1218,19 @@ let EmuWebAppComponent = {
 					name: newName,
 					type: 'EVENT'
 				};
-				if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
-					var leveldef = {
-						name: newName,
-						type: 'EVENT',
-						attributeDefinitions: {
+			if (this.ViewStateService.getCurAttrDef(newName) === undefined) {
+				var leveldef = {
+					name: newName,
+					type: 'EVENT',
+					attributeDefinitions: [
+						{
 							name: newName,
 							type: 'string'
 						}
-					};
-					this.ViewStateService.setCurLevelAttrDefs(leveldef);
-				}
+					]
+				};
+				this.ViewStateService.setCurLevelAttrDefs(leveldef);
+			}
 				this.LevelService.insertLevel(level, length, this.ViewStateService.curPerspectiveIdx);
 				//  Add to history
 				this.HistoryService.addObjToUndoStack({

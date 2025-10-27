@@ -7,7 +7,8 @@ class DataService{
 	
 	constructor(){
 		this.data = {
-			levels: []
+			levels: [],
+			links: []
 		};
 		this.maxItemID = 0;
 	}
@@ -139,6 +140,12 @@ class DataService{
 	*/
 	public setData(data) {
 		angular.copy(data, this.data);
+		if(!Array.isArray(this.data.levels)){
+			this.data.levels = [];
+		}
+		if(!Array.isArray(this.data.links)){
+			this.data.links = [];
+		}
 		if(typeof this.data.levels !== "undefined"){
 			this.data.levels.forEach((level) => {
 				level.items.forEach((item) => {
