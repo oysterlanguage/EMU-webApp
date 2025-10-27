@@ -32,6 +32,7 @@ class WavParserService{
     * @param buf array buffer containing entire wav file
     */
     public parseWavHeader(buf){
+        buf = this.ensureUint8Array(buf);
         
         var headerInfos = {} as any;
         
@@ -191,8 +192,25 @@ class WavParserService{
     * @returns promise
     */
     public parseWavAudioBuf(buf) {
-        var headerInfos = this.parseWavHeader(buf);
+        let uint8;
+        let arrayBuffer;
+        try {
+            uint8 = this.ensureUint8Array(buf);
+            arrayBuffer = this.toTightArrayBuffer(uint8);
+        } catch (e) {
+            this.defer = this.$q.defer();
+            const err = {} as any;
+            err.status = {} as any;
+            err.status.message = 'Error parsing audio file: Unsupported buffer type.';
+            this.defer.reject(err);
+            return this.defer.promise;
+        }
+        
+        var headerInfos = this.parseWavHeader(uint8);
         if(typeof headerInfos.status !== 'undefined' && headerInfos.status.type === 'ERROR'){
+            if (this.shouldTryGenericDecode(headerInfos.status.message, uint8)) {
+                return this.decodeGenericAudio(arrayBuffer, headerInfos.status.message);
+            }
             this.defer = this.$q.defer();
             this.defer.reject(headerInfos); // headerInfos now contains only error message
             return this.defer.promise;
@@ -205,7 +223,7 @@ class WavParserService{
                     
                     this.defer = this.$q.defer();
                     // using non promise version as Safari doesn't support it yet
-                    offlineCtx.decodeAudioData(buf,
+                    offlineCtx.decodeAudioData(arrayBuffer,
                         (decodedData) => { this.defer.resolve(decodedData); },
                         (error) => { this.defer.reject(error) });
                         
@@ -233,6 +251,95 @@ class WavParserService{
                 
             };
             
+            private ensureUint8Array(buf: any): Uint8Array {
+                if (buf instanceof Uint8Array) {
+                    return buf;
+                }
+                if (buf instanceof ArrayBuffer) {
+                    return new Uint8Array(buf);
+                }
+                if (buf && buf.buffer instanceof ArrayBuffer) {
+                    return new Uint8Array(buf.buffer, buf.byteOffset || 0, buf.byteLength);
+                }
+                throw new Error('Unsupported buffer type');
+            }
+            
+            private toTightArrayBuffer(buf: Uint8Array): ArrayBuffer {
+                if (buf.byteOffset === 0 && buf.byteLength === buf.buffer.byteLength) {
+                    return buf.buffer;
+                }
+                return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+            }
+            
+            private shouldTryGenericDecode(message: string, head: Uint8Array): boolean {
+                const msg = (message || '').toLowerCase();
+                if (msg.indexOf('chunkid not riff') !== -1 || msg.indexOf('format not wave') !== -1) {
+                    return true;
+                }
+                return this.looksLikeMp3(head);
+            }
+            
+            private looksLikeMp3(head: Uint8Array): boolean {
+                if (!head || head.length < 3) {
+                    return false;
+                }
+                // ID3 tag
+                if (head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33) {
+                    return true;
+                }
+                // Frame sync bits 11111111 111xxxxx
+                if (head[0] === 0xFF && (head[1] & 0xE0) === 0xE0) {
+                    return true;
+                }
+                return false;
+            }
+            
+            private decodeGenericAudio(arrayBuffer: ArrayBuffer, previousMessage?: string) {
+                const AudioCtx = this.$window.AudioContext || this.$window.webkitAudioContext;
+                this.defer = this.$q.defer();
+                if (!AudioCtx) {
+                    const err = {} as any;
+                    err.status = {} as any;
+                    err.status.message = 'Error parsing audio file: Web Audio API not supported in this browser.';
+                    this.defer.reject(err);
+                    return this.defer.promise;
+                }
+                
+                let audioCtx;
+                try {
+                    audioCtx = new AudioCtx();
+                } catch (e) {
+                    const err = {} as any;
+                    err.status = {} as any;
+                    err.status.message = 'Error initializing audio decoder: ' + e;
+                    this.defer.reject(err);
+                    return this.defer.promise;
+                }
+                
+                audioCtx.decodeAudioData(arrayBuffer,
+                    (decodedData) => {
+                        if (typeof audioCtx.close === 'function') {
+                            audioCtx.close().catch(() => undefined);
+                        }
+                        this.defer.resolve(decodedData);
+                    },
+                    (error) => {
+                        if (typeof audioCtx.close === 'function') {
+                            audioCtx.close().catch(() => undefined);
+                        }
+                        const err = {} as any;
+                        err.status = {} as any;
+                        const errorMsg = error && error.message ? error.message : error;
+                        if (previousMessage) {
+                            err.status.message = 'Error parsing audio file: ' + errorMsg + ' (' + previousMessage + ')';
+                        } else {
+                            err.status.message = 'Error parsing audio file: ' + errorMsg;
+                        }
+                        this.defer.reject(err);
+                    });
+                
+                return this.defer.promise;
+            }
             
         }
         

@@ -14,13 +14,13 @@ angular.module('emuwebApp')
 			scope: {},
 			link: function postLink(scope, element) {
 				/* --------- Messages -------- */
-				scope.dropTextDefault = 'Drop your files here (.wav files; .wav & annotJSON file pairs; .wav & TextGrid file pairs) or click here to do the same with a file dialog';
-				scope.dropTextErrorFileType = 'Error: Could not parse file. The following file types are supported: .WAV .TEXTGRID _annot.json';
+				scope.dropTextDefault = 'Drop your files here (.wav/.mp3 files; audio & annotJSON file pairs; audio & TextGrid file pairs) or click here to do the same with a file dialog';
+				scope.dropTextErrorFileType = 'Error: Could not parse file. The following file types are supported: .WAV .MP3 .TEXTGRID _annot.json';
 				scope.dropTextErrorAPI = 'Sorry ! The File APIs are not supported in your browser.';
 				scope.dropAllowed = 'Drop file(s) to start loading !';
-				scope.dropParsingWaiting = '.TextGrid loaded! Please load .WAV file in order to start!';
-				scope.dropParsingWAV = '.WAV loaded! Proceeding without annotation data.';
-				scope.dropParsingWaitingAnnot = 'Annotation file loaded! Please load .WAV file in order to start!';
+				scope.dropParsingWaiting = '.TextGrid loaded! Please load a .WAV or .MP3 file in order to start!';
+				scope.dropParsingWAV = 'Audio file loaded! Proceeding without annotation data.';
+				scope.dropParsingWaitingAnnot = 'Annotation file loaded! Please load a .WAV or .MP3 file in order to start!';
 				scope.dropFirefoxWarning = 'Sorry ! Firefox does not support dropping folders ! please drop single or multiple files !';
 
 				scope.dropText = scope.dropTextDefault;
@@ -54,7 +54,7 @@ angular.module('emuwebApp')
 						scope.bundles[j] = [];
 						scope.bundles[j][0] = bundle;
 					}
-					if (extension === 'WAV') {
+					if (extension === 'WAV' || extension === 'MP3') {
 						scope.bundles[j][1] = file;
 						scope.handles.push(file);
 						scope.dropClass = scope.dropClassDefault;

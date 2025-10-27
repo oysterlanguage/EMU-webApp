@@ -155,7 +155,7 @@ describe('Service: dbObjLoadSaveService', function () {
      expect(Binarydatamaniphelper.base64ToArrayBuffer).toHaveBeenCalled();
      deferred3.resolve();
      scope.$apply();
-     expect(modalService.open).toHaveBeenCalledWith('views/error.html', 'Error parsing wav file: error_msg2');
+     expect(modalService.open).toHaveBeenCalledWith('views/error.html', 'Error parsing audio file: error_msg2');
      expect(appStateService.resetToInitState).toHaveBeenCalled();     
    }));
 
