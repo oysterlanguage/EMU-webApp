@@ -520,6 +520,65 @@ let EmuWebAppComponent = {
             this.$element.bind('mouseleave', () => {
                 this.ViewStateService.mouseInEmuWebApp = false;
             });
+
+            var canvasEl = this.$element.find('.emuwebapp-canvas');
+            var wheelHandler = (evt) => {
+                if (!this.ViewStateService.getPermission('zoom')) {
+                    return;
+                }
+                if (!this.SoundHandlerService.audioBuffer || typeof this.SoundHandlerService.audioBuffer.length !== 'number' || this.SoundHandlerService.audioBuffer.length === 0) {
+                    return;
+                }
+                var viewport = this.ViewStateService.curViewPort;
+                var viewportSpan = viewport.eS - viewport.sS;
+                if (viewportSpan <= 0) {
+                    return;
+                }
+                var oe = evt.originalEvent || evt;
+                if (oe.ctrlKey || oe.metaKey) {
+                    return;
+                }
+                var deltaY = 0;
+                if (typeof oe.deltaY !== 'undefined') {
+                    deltaY = oe.deltaY;
+                    if (oe.deltaMode === 1) { // DOM_DELTA_LINE
+                        deltaY *= 40;
+                    } else if (oe.deltaMode === 2) { // DOM_DELTA_PAGE
+                        deltaY *= 120;
+                    }
+                } else if (typeof oe.wheelDelta !== 'undefined') {
+                    deltaY = -oe.wheelDelta;
+                }
+                if (!deltaY) {
+                    return;
+                }
+
+                evt.preventDefault();
+                evt.stopPropagation();
+
+                var direction = deltaY > 0 ? 1 : -1;
+                var normalized = Math.abs(deltaY) / 120;
+                if (normalized < 1) {
+                    normalized = 1;
+                } else if (normalized > 5) {
+                    normalized = 5;
+                }
+                var baseStep = Math.max(1, Math.round(viewportSpan / 40));
+                var shiftSamples = direction * Math.max(1, Math.round(baseStep * normalized));
+
+                this.$scope.$apply(() => {
+                    this.ViewStateService.setViewPort(
+                        this.ViewStateService.curViewPort.sS + shiftSamples,
+                        this.ViewStateService.curViewPort.eS + shiftSamples
+                    );
+                });
+            };
+
+            canvasEl.on('wheel', wheelHandler);
+
+            this.$scope.$on('$destroy', () => {
+                canvasEl.off('wheel', wheelHandler);
+            });
             
             // bind window resize event
             angular.element(this.$window).bind('resize', () => {
