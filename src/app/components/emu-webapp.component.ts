@@ -135,6 +135,68 @@ let EmuWebAppComponent = {
             </div>
             <!-- top menu bar end -->
 
+            <!-- start: media toolbar -->
+            <div class="emuwebapp-media-toolbar">
+                <div>
+                    <osci-overview class="preview" 
+					id="preview"
+					cur-channel="$ctrl.ViewStateService.osciSettings.curChannel"
+					view-port-sample-start="$ctrl.ViewStateService.curViewPort.sS"
+					view-port-sample-end="$ctrl.ViewStateService.curViewPort.eS"
+					cur-bndl="$ctrl.LoadedMetaDataService.getCurBndl()"
+					></osci-overview>
+                </div>
+
+                <button class="emuwebapp-mini-btn left"
+                id="zoomInBtn" 
+                ng-click="$ctrl.cmdZoomIn();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">expand_less</i>in</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="zoomOutBtn" 
+                ng-click="$ctrl.cmdZoomOut();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">expand_more</i>out</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="zoomLeftBtn" 
+                ng-click="$ctrl.cmdZoomLeft();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">chevron_left</i>left</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="zoomRightBtn" 
+                ng-click="$ctrl.cmdZoomRight();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">chevron_right</i>right</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="zoomAllBtn" 
+                ng-click="$ctrl.cmdZoomAll();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons" style="transform: rotate(90deg)">unfold_less</i>all</button>
+
+                <button class="emuwebapp-mini-btn left"
+                id="zoomSelBtn" 
+                ng-click="$ctrl.cmdZoomSel();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons" style="transform: rotate(90deg)">unfold_more</i>selection</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="playViewBtn" 
+                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
+                ng-click="$ctrl.cmdPlayView();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')" ><i class="material-icons">play_arrow</i>in view</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="playSelBtn" 
+                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
+                ng-click="$ctrl.cmdPlaySel();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')"><i class="material-icons">play_circle_outline</i>selected</button>
+                
+                <button class="emuwebapp-mini-btn left"
+                id="playAllBtn" 
+                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
+                ng-click="$ctrl.cmdPlayAll();" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')"><i class="material-icons">play_circle_filled</i>entire file</button>
+            </div>
+            <!-- end: media toolbar -->
+
             <!-- vertical split layout that contains top and bottom pane -->
             <div class="emuwebapp-canvas">
 				<history-action-popup
@@ -269,68 +331,6 @@ let EmuWebAppComponent = {
                 </bg-splitter>
             </div>
             <!-- end: vertical split layout -->
-
-            <!-- start: bottom menu bar -->
-            <div class="emuwebapp-bottom-menu">
-                <div>
-                    <osci-overview class="preview" 
-					id="preview"
-					cur-channel="$ctrl.ViewStateService.osciSettings.curChannel"
-					view-port-sample-start="$ctrl.ViewStateService.curViewPort.sS"
-					view-port-sample-end="$ctrl.ViewStateService.curViewPort.eS"
-					cur-bndl="$ctrl.LoadedMetaDataService.getCurBndl()"
-					></osci-overview>
-                </div>
-
-                <button class="emuwebapp-mini-btn left"
-                id="zoomInBtn" 
-                ng-click="$ctrl.cmdZoomIn();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">expand_less</i>in</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="zoomOutBtn" 
-                ng-click="$ctrl.cmdZoomOut();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">expand_more</i>out</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="zoomLeftBtn" 
-                ng-click="$ctrl.cmdZoomLeft();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">chevron_left</i>left</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="zoomRightBtn" 
-                ng-click="$ctrl.cmdZoomRight();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons">chevron_right</i>right</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="zoomAllBtn" 
-                ng-click="$ctrl.cmdZoomAll();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons" style="transform: rotate(90deg)">unfold_less</i>all</button>
-
-                <button class="emuwebapp-mini-btn left"
-                id="zoomSelBtn" 
-                ng-click="$ctrl.cmdZoomSel();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('zoom')"><i class="material-icons" style="transform: rotate(90deg)">unfold_more</i>selection</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="playViewBtn" 
-                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
-                ng-click="$ctrl.cmdPlayView();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')" ><i class="material-icons">play_arrow</i>in view</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="playSelBtn" 
-                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
-                ng-click="$ctrl.cmdPlaySel();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')"><i class="material-icons">play_circle_outline</i>selected</button>
-                
-                <button class="emuwebapp-mini-btn left"
-                id="playAllBtn" 
-                ng-show="$ctrl.ConfigProviderService.vals.restrictions.playback" 
-                ng-click="$ctrl.cmdPlayAll();" 
-                ng-disabled="!$ctrl.ViewStateService.getPermission('playaudio')"><i class="material-icons">play_circle_filled</i>entire file</button>
-            </div>
-            <!-- end: bottom menu bar -->
 
             <!-- start: large text input field -->
             <!--<large-text-field-input></large-text-field-input>-->
