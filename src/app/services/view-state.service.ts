@@ -1366,6 +1366,10 @@ class ViewStateService{
 	* @param levelDefs level definitions from the DBconfig
 	*/
 	public setCurLevelAttrDefs(levelDefs) {
+		this.curLevelAttrDefs = [];
+		if (!Array.isArray(levelDefs)) {
+			return;
+		}
 		levelDefs.forEach((ld) => {
 			this.curLevelAttrDefs.push({
 				'levelName': ld.name,
