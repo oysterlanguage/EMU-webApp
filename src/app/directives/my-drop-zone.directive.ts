@@ -107,11 +107,7 @@ angular.module('emuwebApp')
 				scope.startRendering = function () {
 					// If all the files we expect have shown up, then flush the queue.
 					if (scope.count === scope.handles.length) {
-						if (DragnDropService.setData(scope.bundles) === false) {
-							ModalService.open('views/error.html', 'Sorry you dropped too many bundles (' + scope.handles.length + '). The maximum currently allowed is: ' + DragnDropService.maxDroppedBundles).then(() => {
-								AppStateService.resetToInitState();
-							});
-						}
+						DragnDropService.setData(scope.bundles);
 						scope.handles = [];
 						scope.bundles = [];
 						scope.bundleNames = [];

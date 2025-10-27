@@ -209,6 +209,17 @@ class DbObjLoadSaveService{
 								}
 								this.innerLoadBundle(bndl, bundleData, res, defer);
 							});
+						}else if(bundleData.mediaFile.encoding === 'ARRAYBUFFER'){
+							if(bundleData.mediaFile.data && bundleData.mediaFile.data.byteLength === undefined){
+								arrBuff = this.BinaryDataManipHelperService.base64ToArrayBuffer(bundleData.mediaFile.data);
+							}else{
+								arrBuff = bundleData.mediaFile.data;
+							}
+							this.innerLoadBundle(bndl, bundleData, arrBuff, defer);
+						}else{
+							this.ModalService.open('views/error.html', 'Error loading bundle: Unsupported media file encoding "' + bundleData.mediaFile.encoding + '"').then(() => {
+								this.AppStateService.resetToInitState();
+							});
 						}
 					} else {
 						this.ModalService.open('views/error.html', 'Error validating annotation file: ' + JSON.stringify(validRes, null, 4)).then(() => {

@@ -18,8 +18,22 @@ class DragnDropDataService{
 		var defer = this.$q.defer();
 		this.convertedBundles.forEach((bundle) => {
 			if (bundle.name === name) {
-				var bc = angular.copy(bundle);
-				delete bc.name;
+				var bc = {} as any;
+				Object.keys(bundle).forEach((key) => {
+					if (key !== 'name' && key !== 'mediaFile') {
+						bc[key] = angular.copy(bundle[key]);
+					}
+				});
+				if (bundle.mediaFile) {
+					if (bundle.mediaFile.encoding === 'ARRAYBUFFER' && bundle.mediaFile.data instanceof ArrayBuffer) {
+						bc.mediaFile = {
+							encoding: 'ARRAYBUFFER',
+							data: bundle.mediaFile.data
+						};
+					} else {
+						bc.mediaFile = angular.copy(bundle.mediaFile);
+					}
+				}
 				defer.resolve({
 					status: 200,
 					data: bc

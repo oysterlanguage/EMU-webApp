@@ -23,8 +23,6 @@ class DragnDropService{
 	private drandropBundles;
 	private bundleList;
 	private sessionName;
-	private maxDroppedBundles;
-	
 	constructor($q, $rootScope, $window, ModalService, DataService, ValidationService, ConfigProviderService, DragnDropDataService, IoHandlerService, ViewStateService, SoundHandlerService, BinaryDataManipHelperService, BrowserDetectorService, WavParserService, TextGridParserService, LoadedMetaDataService, LevelService){
 		this.$q = $q;
 		this.$rootScope = $rootScope;
@@ -47,8 +45,6 @@ class DragnDropService{
 		this.drandropBundles = [];
 		this.bundleList = [];
 		this.sessionName = 'File(s)';
-		this.maxDroppedBundles = 10;
-		
 	}
 	
 	///////////////////////////////
@@ -65,18 +61,13 @@ class DragnDropService{
 			}
 			count = i;
 		});
-		if (count <= this.maxDroppedBundles) {
-			this.convertDragnDropData(this.drandropBundles, 0).then(() => {
-				this.LoadedMetaDataService.setBundleList(this.bundleList);
-				this.LoadedMetaDataService.setCurBndlName(this.bundleList[this.DragnDropDataService.sessionDefault]);
-				this.LoadedMetaDataService.setDemoDbName(this.bundleList[this.DragnDropDataService.sessionDefault]);
-				this.handleLocalFiles();
-				return true;
-			});
-		}
-		else {
-			return false;
-		}
+		this.convertDragnDropData(this.drandropBundles, 0).then(() => {
+			this.LoadedMetaDataService.setBundleList(this.bundleList);
+			this.LoadedMetaDataService.setCurBndlName(this.bundleList[this.DragnDropDataService.sessionDefault]);
+			this.LoadedMetaDataService.setDemoDbName(this.bundleList[this.DragnDropDataService.sessionDefault]);
+			this.handleLocalFiles();
+			return true;
+		});
 	};
 	
 	public resetToInitState() {
@@ -85,7 +76,6 @@ class DragnDropService{
 		delete this.bundleList;
 		this.bundleList = [];
 		this.sessionName = 'File(s)';
-		this.maxDroppedBundles = 10;
 		this.DragnDropDataService.resetToInitState();
 		this.LoadedMetaDataService.resetToInitState();
 	};
@@ -164,18 +154,17 @@ class DragnDropService{
 				reader.readAsArrayBuffer(data.wav);
 				reader.onloadend = (evt) => {
 					if (evt.target.readyState === FileReader.DONE) {
-						if (this.BrowserDetectorService.isBrowser.Firefox()) {
-							res = evt.target.result;
-						} else {
-							res = evt.currentTarget.result;
-						}
+						res = evt.target.result;
+						const base64Audio = this.BinaryDataManipHelperService.arrayBufferToBase64(res);
 						this.WavParserService.parseWavAudioBuf(res).then((audioBuffer) => {
 							if (this.DragnDropDataService.convertedBundles[i] === undefined) {
 								this.DragnDropDataService.convertedBundles[i] = {};
 							}
-							//DragnDropDataService.convertedBundles[i].mediaFile = {};
 							this.SoundHandlerService.audioBuffer = audioBuffer;
-							//DragnDropDataService.convertedBundles[i].mediaFile.audioBuffer = res;
+							this.DragnDropDataService.convertedBundles[i].mediaFile = {
+								encoding: 'BASE64',
+								data: base64Audio
+							};
 							this.DragnDropDataService.convertedBundles[i].ssffFiles = [];
 							var bundle = data.wav.name.substr(0, data.wav.name.lastIndexOf('.'));
 							if (data.annotation === undefined) {
