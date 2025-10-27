@@ -554,26 +554,40 @@ let EmuWebAppComponent = {
                 if (oe.ctrlKey || oe.metaKey) {
                     return;
                 }
-                var deltaY = 0;
-                if (typeof oe.deltaY !== 'undefined') {
-                    deltaY = oe.deltaY;
+                var delta = 0;
+                if (typeof oe.deltaY === 'number' && oe.deltaY !== 0) {
+                    delta = oe.deltaY;
                     if (oe.deltaMode === 1) { // DOM_DELTA_LINE
-                        deltaY *= 40;
+                        delta *= 40;
                     } else if (oe.deltaMode === 2) { // DOM_DELTA_PAGE
-                        deltaY *= 120;
+                        delta *= 120;
                     }
-                } else if (typeof oe.wheelDelta !== 'undefined') {
-                    deltaY = -oe.wheelDelta;
+                } else if (oe.shiftKey && typeof oe.deltaX === 'number' && oe.deltaX !== 0) {
+                    delta = oe.deltaX;
+                    if (oe.deltaMode === 1) { // DOM_DELTA_LINE
+                        delta *= 40;
+                    } else if (oe.deltaMode === 2) { // DOM_DELTA_PAGE
+                        delta *= 120;
+                    }
+                } else if (typeof oe.wheelDelta === 'number') {
+                    delta = -oe.wheelDelta;
                 }
-                if (!deltaY) {
+                if (!delta) {
                     return;
                 }
 
                 evt.preventDefault();
                 evt.stopPropagation();
 
-                var direction = deltaY > 0 ? 1 : -1;
-                var normalized = Math.abs(deltaY) / 120;
+                var direction = delta > 0 ? 1 : -1;
+                if (oe.shiftKey) {
+                    this.$scope.$apply(() => {
+                        this.LevelService.deleteEditArea();
+                        this.ViewStateService.zoomViewPort(direction < 0, this.LevelService);
+                    });
+                    return;
+                }
+                var normalized = Math.abs(delta) / 120;
                 if (normalized < 1) {
                     normalized = 1;
                 } else if (normalized > 5) {
