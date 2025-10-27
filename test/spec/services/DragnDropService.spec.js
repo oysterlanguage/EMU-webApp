@@ -21,9 +21,15 @@ describe('Service: DragnDropService', function () {
     // set any data
     DragnDropService.drandropBundles.push('test');
     DragnDropService.bundleList.push('test');
+    DragnDropService.bundleOrder.push('test');
+    DragnDropService.bundleEntriesByName.test = {};
+    DragnDropService.convertedByName.test = {};
     DragnDropService.resetToInitState();
     expect(DragnDropService.drandropBundles.length).toBe(0);
     expect(DragnDropService.bundleList.length).toBe(0);
+    expect(DragnDropService.bundleOrder.length).toBe(0);
+    expect(Object.keys(DragnDropService.bundleEntriesByName).length).toBe(0);
+    expect(Object.keys(DragnDropService.convertedByName).length).toBe(0);
   }));
 
   it('should setData', inject(function (DragnDropService, loadedMetaDataService) {
@@ -33,11 +39,12 @@ describe('Service: DragnDropService', function () {
     spyOn(loadedMetaDataService, 'setCurBndlName');
     spyOn(loadedMetaDataService, 'setDemoDbName');
     spyOn(DragnDropService, 'handleLocalFiles');
-    spyOn(DragnDropService, 'setDragnDropData');
     spyOn(DragnDropService, 'convertDragnDropData').and.returnValue(def.promise);
     DragnDropService.setData(testData);
-    expect(DragnDropService.setDragnDropData).toHaveBeenCalled();
-    expect(DragnDropService.convertDragnDropData).toHaveBeenCalledWith([  ], 0);
+    expect(DragnDropService.convertDragnDropData).toHaveBeenCalledWith(jasmine.arrayContaining([
+      jasmine.objectContaining({name: 'test1', wav: 'wavData1', annotation: 'annotationData1'}),
+      jasmine.objectContaining({name: 'test2', wav: 'wavData2', annotation: 'annotationData2'})
+    ]), 0);
     def.resolve();
     $scope.$apply();
     expect(loadedMetaDataService.setBundleList).toHaveBeenCalled();
@@ -55,31 +62,23 @@ describe('Service: DragnDropService', function () {
      expect(DragnDropService.generateDrop().toString().substr(0, 12)).toBe('blob:http://');
   }));
 
-  it('should setDragnDropData', inject(function (DragnDropService, DragnDropDataService) {
-    spyOn(DragnDropDataService, 'setDefaultSession');
-    var pak1 = 0;
-    var pak2 = 1;
-    DragnDropService.setDragnDropData(testData[pak1][0], pak1, 'wav', testData[pak1][1]);
-    DragnDropService.setDragnDropData(testData[pak1][0], pak1, 'annotation', testData[pak1][2]);
-    DragnDropService.setDragnDropData(testData[pak2][0], pak2, 'wav', testData[pak2][1]);
-    DragnDropService.setDragnDropData(testData[pak2][0], pak2, 'annotation', testData[pak2][2]);
-    expect(DragnDropDataService.convertedBundles.length).toBe(2);
-    expect(DragnDropDataService.setDefaultSession).toHaveBeenCalled();
-  }));
-
-  it('should getDragnDropData', inject(function (DragnDropService, DragnDropDataService) {
-    spyOn(DragnDropDataService, 'setDefaultSession');
-    var pak1 = 0;
-    var pak2 = 1;
-    DragnDropService.setDragnDropData(testData[pak1][0], pak1, 'wav', testData[pak1][1]);
-    DragnDropService.setDragnDropData(testData[pak1][0], pak1, 'annotation', testData[pak1][2]);
-    DragnDropService.setDragnDropData(testData[pak2][0], pak2, 'wav', testData[pak2][1]);
-    DragnDropService.setDragnDropData(testData[pak2][0], pak2, 'annotation', testData[pak2][2]);
-    expect(DragnDropService.getDragnDropData(pak1, 'wav')).toEqual(testData[pak1][1]);
-    expect(DragnDropService.getDragnDropData(pak1, 'annotation')).toEqual(testData[pak1][2]);
-    expect(DragnDropService.getDragnDropData(pak2, 'wav')).toEqual(testData[pak2][1]);
-    expect(DragnDropService.getDragnDropData(pak2, 'annotation')).toEqual(testData[pak2][2]);
-    expect(DragnDropService.getDragnDropData(pak2, 'annotation12')).toEqual(false);
+  it('should getDragnDropData', inject(function (DragnDropService) {
+    DragnDropService.bundleOrder = ['test1', 'test2'];
+    DragnDropService.convertedByName = {
+      test1: {
+        mediaFile: {encoding: 'BASE64', data: 'wavData1'},
+        annotation: {payload: 'annotationData1'}
+      },
+      test2: {
+        mediaFile: {encoding: 'BASE64', data: 'wavData2'},
+        annotation: {payload: 'annotationData2'}
+      }
+    };
+    expect(DragnDropService.getDragnDropData(0, 'wav')).toEqual({encoding: 'BASE64', data: 'wavData1'});
+    expect(DragnDropService.getDragnDropData(0, 'annotation')).toEqual({payload: 'annotationData1'});
+    expect(DragnDropService.getDragnDropData(1, 'wav')).toEqual({encoding: 'BASE64', data: 'wavData2'});
+    expect(DragnDropService.getDragnDropData(1, 'annotation')).toEqual({payload: 'annotationData2'});
+    expect(DragnDropService.getDragnDropData(1, 'annotation12')).toEqual(false);
   }));
 
   it('should handleLocalFiles', inject(function (Wavparserservice,

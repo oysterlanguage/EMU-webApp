@@ -16,8 +16,12 @@ class DragnDropDataService{
 	
 	public getBundle(name) {
 		var defer = this.$q.defer();
+		console.log('[EMU][Drop] getBundle request for', name, 'available', this.convertedBundles.map((bndl) => bndl && bndl.name));
+		var matched = false;
 		this.convertedBundles.forEach((bundle) => {
 			if (bundle.name === name) {
+				console.log('[EMU][Drop] getBundle matched', bundle.name);
+				matched = true;
 				var bc = {} as any;
 				Object.keys(bundle).forEach((key) => {
 					if (key !== 'name' && key !== 'mediaFile') {
@@ -40,6 +44,13 @@ class DragnDropDataService{
 				});
 			}
 		});
+		if (!matched) {
+			console.warn('[EMU][Drop] getBundle did not find bundle for', name);
+			defer.reject({
+				status: 404,
+				message: 'Bundle not found: ' + name
+			});
+		}
 		return defer.promise;
 	};
 	

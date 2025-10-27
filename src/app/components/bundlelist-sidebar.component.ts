@@ -168,9 +168,6 @@ controller: [
 			this.recomputeSidebarWidth();
 		}, true);
 	}
-	$postLink () {
-
-	}
 	$onChanges (changes) {
 		if(this._inited){
 			if(changes.open){
@@ -189,6 +186,65 @@ controller: [
 	$onInit () {
 		this._inited = true;
 		this.recomputeSidebarWidth();
+	}
+	$postLink () {
+		const dragEnterHandler = (event) => {
+			if (!this.isFileDrag(event)) {
+				return;
+			}
+			if (!this.ViewStateService.showDropZone) {
+				event.preventDefault();
+				this.$scope.$applyAsync(() => {
+					this.ViewStateService.showDropZone = true;
+				});
+			}
+		};
+		const dragOverHandler = (event) => {
+			if (!this.isFileDrag(event)) {
+				return;
+			}
+			if (!this.ViewStateService.showDropZone) {
+				event.preventDefault();
+			}
+		};
+		const dragLeaveHandler = (event) => {
+			if (!this.isFileDrag(event)) {
+				return;
+			}
+			if (!this.ViewStateService.showDropZone) {
+				return;
+			}
+			const relatedTarget = (event.relatedTarget || event.toElement);
+			const hostEl = this.$element[0];
+			if (hostEl && relatedTarget && hostEl.contains(relatedTarget)) {
+				return;
+			}
+			this.$scope.$applyAsync(() => {
+				this.ViewStateService.showDropZone = false;
+			});
+		};
+		this.$element.on('dragenter', dragEnterHandler);
+		this.$element.on('dragover', dragOverHandler);
+		this.$element.on('dragleave', dragLeaveHandler);
+		this.$scope.$on('$destroy', () => {
+			this.$element.off('dragenter', dragEnterHandler);
+			this.$element.off('dragover', dragOverHandler);
+			this.$element.off('dragleave', dragLeaveHandler);
+		});
+	}
+	private isFileDrag(event) {
+		const oe = event.originalEvent || event;
+		const dataTransfer = oe && oe.dataTransfer;
+		if (!dataTransfer) {
+			return false;
+		}
+		if (dataTransfer.types && Array.prototype.indexOf.call(dataTransfer.types, 'Files') !== -1) {
+			return true;
+		}
+		if (dataTransfer.files && dataTransfer.files.length > 0) {
+			return true;
+		}
+		return false;
 	}
 	private recomputeSidebarWidth () {
 		const bundles = this.LoadedMetaDataService.getBundleList();

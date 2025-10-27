@@ -36,13 +36,14 @@ class LoadedMetaDataService{
 	}
 	
 	private genRendOptBndlList(bndlList) {
+		var result = {};
 		bndlList.forEach((bndl) => {
-			if (this.rendOptBndlList[bndl.session] === undefined) {
-				this.rendOptBndlList[bndl.session] = [];
+			if (result[bndl.session] === undefined) {
+				result[bndl.session] = [];
 			}
-			this.rendOptBndlList[bndl.session].push(bndl);
+			result[bndl.session].push(bndl);
 		});
-		return this.rendOptBndlList;
+		return result;
 	}
 	///////////////
 	// bundleList

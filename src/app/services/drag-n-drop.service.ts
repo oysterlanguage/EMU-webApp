@@ -23,6 +23,9 @@ class DragnDropService{
 	private drandropBundles;
 	private bundleList;
 	private sessionName;
+	private bundleEntriesByName;
+	private convertedByName;
+	private bundleOrder;
 	constructor($q, $rootScope, $window, ModalService, DataService, ValidationService, ConfigProviderService, DragnDropDataService, IoHandlerService, ViewStateService, SoundHandlerService, BinaryDataManipHelperService, BrowserDetectorService, WavParserService, TextGridParserService, LoadedMetaDataService, LevelService){
 		this.$q = $q;
 		this.$rootScope = $rootScope;
@@ -45,6 +48,9 @@ class DragnDropService{
 		this.drandropBundles = [];
 		this.bundleList = [];
 		this.sessionName = 'File(s)';
+		this.bundleEntriesByName = {};
+		this.convertedByName = {};
+		this.bundleOrder = [];
 	}
 	
 	///////////////////////////////
@@ -53,20 +59,134 @@ class DragnDropService{
 	///////////////////
 	// drag n drop data
 	public setData(bundles) {
-		var count = 0;
-		bundles.forEach((bundle, i) => {
-			this.setDragnDropData(bundle[0], i, 'wav', bundle[1]);
-			if (bundle[2] !== undefined) {
-				this.setDragnDropData(bundle[0], i, 'annotation', bundle[2]);
+		if (!Array.isArray(bundles) || bundles.length === 0) {
+			console.warn('[EMU][Drop] setData called with no bundles, ignoring');
+			return;
+		}
+
+		console.log('[EMU][Drop] Processing dropped bundles', bundles.map((bndl) => bndl && bndl[0]));
+
+		var newNames = [];
+		var newEntries = [];
+
+		bundles.forEach((bundle) => {
+			var name = bundle[0];
+			if (!name) {
+				console.warn('[EMU][Drop] Encountered bundle without name, skipping', bundle);
+				return;
 			}
-			count = i;
+			newNames.push(name);
+			newEntries.push({
+				name: name,
+				wav: bundle[1],
+				annotation: bundle[2]
+			});
 		});
-		this.convertDragnDropData(this.drandropBundles, 0).then(() => {
-			this.LoadedMetaDataService.setBundleList(this.bundleList);
-			this.LoadedMetaDataService.setCurBndlName(this.bundleList[this.DragnDropDataService.sessionDefault]);
-			this.LoadedMetaDataService.setDemoDbName(this.bundleList[this.DragnDropDataService.sessionDefault]);
-			this.handleLocalFiles();
+
+		this.drandropBundles = newEntries;
+
+		this.convertDragnDropData(newEntries, 0).then(() => {
+			console.log('[EMU][Drop] Finished conversion for names', newNames);
+
+			newEntries.forEach((entry) => {
+				if (!this.bundleEntriesByName[entry.name]) {
+					this.bundleEntriesByName[entry.name] = {
+						name: entry.name,
+						session: this.sessionName
+					};
+				}
+			});
+
+			var filteredOrder = [];
+			this.bundleOrder.forEach((name) => {
+				if (this.convertedByName[name]) {
+					filteredOrder.push(name);
+				}
+			});
+			this.bundleOrder = filteredOrder;
+
+			newNames.forEach((name) => {
+				if (this.bundleOrder.indexOf(name) === -1) {
+					this.bundleOrder.push(name);
+				}
+			});
+
+			var currentNames = this.DragnDropDataService.convertedBundles.map((bundle) => bundle.name);
+			currentNames.forEach((name) => {
+				if (this.bundleOrder.indexOf(name) === -1) {
+					this.bundleOrder.push(name);
+				}
+			});
+
+			Object.keys(this.bundleEntriesByName).forEach((name) => {
+				if (!this.convertedByName[name]) {
+					delete this.bundleEntriesByName[name];
+				}
+			});
+
+			Object.keys(this.convertedByName).forEach((name) => {
+				if (this.bundleOrder.indexOf(name) === -1) {
+					delete this.convertedByName[name];
+				}
+			});
+
+			this.bundleList = [];
+			var convertedList = [];
+			console.log('[EMU][Drop] convertedByName keys before rebuild', Object.keys(this.convertedByName));
+			this.bundleOrder.forEach((name) => {
+				var stored = this.convertedByName[name];
+				if (!stored) {
+					return;
+				}
+				console.log('[EMU][Drop] Rebuilding bundle entry for', name);
+				var entry = this.bundleEntriesByName[name];
+				if (!entry) {
+					entry = {
+						name: name,
+						session: this.sessionName
+					};
+					this.bundleEntriesByName[name] = entry;
+				} else {
+					entry.session = this.sessionName;
+				}
+				this.bundleList.push(entry);
+				var cloned = angular.copy(stored);
+				cloned.name = name;
+				convertedList.push(cloned);
+			});
+			this.DragnDropDataService.convertedBundles = convertedList.map((bundle) => angular.copy(bundle));
+			console.log('[EMU][Drop] Updated converted bundle names', this.DragnDropDataService.convertedBundles.map((bndl) => bndl && bndl.name));
+
+			var defaultName = newNames.length > 0 ? newNames[newNames.length - 1] : undefined;
+			console.log('[EMU][Drop] Requested default name', defaultName);
+			if (!defaultName && this.bundleOrder.length > 0) {
+				defaultName = this.bundleOrder[this.bundleOrder.length - 1];
+			}
+
+			var defaultIndex = defaultName ? this.bundleOrder.indexOf(defaultName) : -1;
+			if (defaultIndex < 0 && this.bundleOrder.length > 0) {
+				defaultIndex = 0;
+				defaultName = this.bundleOrder[0];
+			}
+
+			if (defaultIndex < 0) {
+				this.DragnDropDataService.setDefaultSession(0);
+			} else {
+				this.DragnDropDataService.setDefaultSession(defaultIndex);
+			}
+			console.log('[EMU][Drop] Final bundle order', this.bundleOrder, 'default index', defaultIndex, 'default name', defaultName);
+
+			if (this.bundleList.length > 0) {
+				this.LoadedMetaDataService.setBundleList(this.bundleList);
+				this.LoadedMetaDataService.setDemoDbName(this.sessionName);
+			}
+			if (defaultIndex >= 0 && this.DragnDropDataService.convertedBundles[defaultIndex]) {
+				console.log('[EMU][Drop] Triggering handleLocalFiles for', defaultName);
+				this.handleLocalFiles();
+			}
 			return true;
+		}).catch((err) => {
+			console.warn('[EMU][Drop] Conversion pipeline failed', err);
 		});
 	};
 	
@@ -76,46 +196,31 @@ class DragnDropService{
 		delete this.bundleList;
 		this.bundleList = [];
 		this.sessionName = 'File(s)';
+		this.bundleEntriesByName = {};
+		this.convertedByName = {};
+		this.bundleOrder = [];
 		this.DragnDropDataService.resetToInitState();
 		this.LoadedMetaDataService.resetToInitState();
-	};
-	
-	/**
-	* setter this.drandropBundles
-	*/
-	public setDragnDropData(bundle, i, type, data) {
-		this.DragnDropDataService.setDefaultSession(i);
-		if (this.drandropBundles[i] === undefined) {
-			this.drandropBundles[i] = {};
-			this.DragnDropDataService.convertedBundles[i] = {};
-			this.DragnDropDataService.convertedBundles[i].name = bundle;
-			this.bundleList.push({
-				name: bundle,
-				session: this.sessionName
-			});
-			
-		}
-		if (type === 'wav') {
-			this.drandropBundles[i].wav = data;
-		}
-		else if (type === 'annotation') {
-			this.drandropBundles[i].annotation = data;
-		}
 	};
 	
 	/**
 	* getter this.drandropBundles
 	*/
 	public getDragnDropData(bundle, type) {
-		if (type === 'wav') {
-			return this.drandropBundles[bundle].wav;
-		}
-		else if (type === 'annotation') {
-			return this.drandropBundles[bundle].annotation;
-		}
-		else {
+		var name = this.bundleOrder[bundle];
+		if (!name) {
 			return false;
 		}
+		var converted = this.convertedByName[name];
+		if (!converted) {
+			return false;
+		}
+		if (type === 'wav') {
+			return angular.copy(converted.mediaFile);
+		} else if (type === 'annotation') {
+			return angular.copy(converted.annotation);
+		}
+		return false;
 	};
 	
 	public generateDrop(data) {
@@ -145,85 +250,95 @@ class DragnDropService{
 	
 	public convertDragnDropData(bundles, i) {
 		var defer = this.$q.defer();
-		var data = this.drandropBundles[i];
-		var reader:any = new FileReader();
-		var reader2:any = new FileReader();
-		var res;
 		if (bundles.length > i) {
-			if (data.wav !== undefined) {
-				reader.readAsArrayBuffer(data.wav);
-				reader.onloadend = (evt) => {
-					if (evt.target.readyState === FileReader.DONE) {
-						res = evt.target.result;
-						const base64Audio = this.BinaryDataManipHelperService.arrayBufferToBase64(res);
-						this.WavParserService.parseWavAudioBuf(res).then((audioBuffer) => {
-							if (this.DragnDropDataService.convertedBundles[i] === undefined) {
-								this.DragnDropDataService.convertedBundles[i] = {};
-							}
-							this.SoundHandlerService.audioBuffer = audioBuffer;
-							this.DragnDropDataService.convertedBundles[i].mediaFile = {
-								encoding: 'BASE64',
-								data: base64Audio
-							};
-							this.DragnDropDataService.convertedBundles[i].ssffFiles = [];
-							var bundle = data.wav.name.substr(0, data.wav.name.lastIndexOf('.'));
-							if (data.annotation === undefined) {
-								this.DragnDropDataService.convertedBundles[i].annotation = {
-									levels: [],
-									links: [],
-									sampleRate: audioBuffer.sampleRate,
-									annotates: bundle,
-									name: bundle
-								};
-								this.convertDragnDropData(bundles, i + 1).then(() => {
-									delete this.drandropBundles;
-									this.drandropBundles = [];
-									defer.resolve();
-								});
-							}
-							else {
-								if (data.annotation.type === 'textgrid') {
-									reader2.readAsText(data.annotation.file);
-									reader2.onloadend = (evt) => {
-										if (evt.target.readyState === FileReader.DONE) {
-											this.TextGridParserService.asyncParseTextGrid(evt.currentTarget.result, data.wav.name, bundle).then((parseMess) => {
-												this.DragnDropDataService.convertedBundles[i].annotation = parseMess;
-												this.convertDragnDropData(bundles, i + 1).then(() => {
-													defer.resolve();
-												});
-											}, (errMess) => {
-												this.ModalService.open('views/error.html', 'Error parsing TextGrid file: ' + errMess.status.message).then(() => {
-													defer.reject();
-												});
-											});
-										}
-									};
-								}
-								else if (data.annotation.type === 'annotation') {
-									reader2.readAsText(data.annotation.file);
-									reader2.onloadend = (evt) => {
-										if (evt.target.readyState === FileReader.DONE) {
-											this.DragnDropDataService.convertedBundles[i].annotation = angular.fromJson(evt.currentTarget.result);
-											this.convertDragnDropData(bundles, i + 1).then(() => {
-												defer.resolve();
-											});
-										}
-									};
-								}
-							}
-						}, (errMess) => {
-							this.ModalService.open('views/error.html', 'Error parsing audio file: ' + errMess.status.message).then(() => {
-								defer.reject();
-							});
-							
-						});
-					}
-				};
+			var data = bundles[i];
+			var reader:any = new FileReader();
+			var reader2:any = new FileReader();
+
+			if (!data || !data.wav) {
+				console.warn('[EMU][Drop] Missing WAV data for entry', data);
+				this.convertDragnDropData(bundles, i + 1).then(() => {
+					defer.resolve();
+				}, (err) => defer.reject(err));
+				return defer.promise;
 			}
-		}
-		else {
+
+			reader.readAsArrayBuffer(data.wav);
+			reader.onloadend = (evt) => {
+				if (evt.target.readyState === FileReader.DONE) {
+					var res = evt.target.result;
+					const base64Audio = this.BinaryDataManipHelperService.arrayBufferToBase64(res);
+					this.WavParserService.parseWavAudioBuf(res).then((audioBuffer) => {
+						this.SoundHandlerService.audioBuffer = audioBuffer;
+					var converted: any = {
+						name: data.name,
+						mediaFile: {
+							encoding: 'BASE64',
+							data: base64Audio
+						},
+						ssffFiles: []
+					};
+					var finalize = () => {
+						var stored = angular.copy(converted);
+						stored.name = data.name;
+						this.convertedByName[data.name] = stored;
+						this.convertDragnDropData(bundles, i + 1).then(() => {
+							defer.resolve();
+						}, (err) => defer.reject(err));
+					};
+						if (data.annotation === undefined) {
+							converted.annotation = {
+								levels: [],
+								links: [],
+								sampleRate: audioBuffer.sampleRate,
+								annotates: data.name,
+								name: data.name
+							};
+							finalize();
+						} else if (data.annotation.type === 'textgrid' && data.annotation.file) {
+							reader2.readAsText(data.annotation.file);
+							reader2.onloadend = (evt2) => {
+								if (evt2.target.readyState === FileReader.DONE) {
+									this.TextGridParserService.asyncParseTextGrid(evt2.currentTarget.result, data.wav.name, data.name).then((parseMess) => {
+										converted.annotation = parseMess;
+										finalize();
+									}, (errMess) => {
+										this.ModalService.open('views/error.html', 'Error parsing TextGrid file: ' + errMess.status.message).then(() => {
+											defer.reject();
+										});
+									});
+								}
+							};
+						} else if (data.annotation.type === 'annotation' && data.annotation.file) {
+							reader2.readAsText(data.annotation.file);
+							reader2.onloadend = (evt2) => {
+								if (evt2.target.readyState === FileReader.DONE) {
+									converted.annotation = angular.fromJson(evt2.currentTarget.result);
+									finalize();
+								}
+							};
+						} else {
+							console.warn('[EMU][Drop] Unknown annotation type for', data.name, data.annotation);
+							converted.annotation = {
+								levels: [],
+								links: [],
+								sampleRate: audioBuffer.sampleRate,
+								annotates: data.name,
+								name: data.name
+							};
+							finalize();
+						}
+					}, (errMess) => {
+						this.ModalService.open('views/error.html', 'Error parsing audio file: ' + errMess.status.message).then(() => {
+							defer.reject();
+						});
+					});
+				}
+			};
+		} else {
+			delete this.drandropBundles;
+			this.drandropBundles = [];
 			defer.resolve();
-			return defer.promise;
 		}
 		return defer.promise;
 	};
@@ -232,6 +347,7 @@ class DragnDropService{
 	* handling local file drops after loading them
 	*/
 	public handleLocalFiles() {
+		console.log('[EMU][Drop] handleLocalFiles using index', this.DragnDropDataService.sessionDefault, 'order', this.bundleOrder);
 		// var ab = DragnDropDataService.convertedBundles[DragnDropDataService.sessionDefault].mediaFile.audioBuffer;
 		var annotation;
 		if (this.DragnDropDataService.convertedBundles[this.DragnDropDataService.sessionDefault].annotation !== undefined) {
@@ -245,6 +361,7 @@ class DragnDropService{
 		// reset history
 		this.ViewStateService.somethingInProgress = true;
 		this.ViewStateService.somethingInProgressTxt = 'Loading local File: ' + this.DragnDropDataService.convertedBundles[this.DragnDropDataService.sessionDefault].name;
+		console.log('[EMU][Drop] Loading bundle', this.DragnDropDataService.convertedBundles[this.DragnDropDataService.sessionDefault].name);
 		this.IoHandlerService.httpGetPath('configFiles/standalone_emuwebappConfig.json').then((resp) => {
 			// first element of perspectives is default perspective
 			this.ViewStateService.curPerspectiveIdx = 0;
