@@ -160,7 +160,7 @@ controller: [
 		this.ViewStateService.currentPage = 0;
 
 		this.bundleListWidth = 240;
-		this.bundleListStyle = { width: this.bundleListWidth + 'px' };
+		this.bundleListStyle = { '--bundle-width': this.bundleListWidth + 'px' };
 
 		this._inited = false;
 
@@ -211,7 +211,7 @@ controller: [
 		if (this.bundleListWidth !== computedWidth) {
 			this.bundleListWidth = computedWidth;
 			this.bundleListStyle = {
-				width: `${this.bundleListWidth}px`
+				'--bundle-width': `${this.bundleListWidth}px`
 			};
 		}
 	};

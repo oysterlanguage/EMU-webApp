@@ -10,12 +10,13 @@
 
 .emuwebapp-bundle-outer {
     height: 100%;
-    width: 240px;
-    min-width: 240px;
+    width: var(--bundle-width, 240px);
+    min-width: var(--bundle-width, 240px);
     background: $color-grey;
     color: $color-white;
     margin-left: 0;
     padding-bottom: 500px;
+    overflow: hidden;
     @extend .emuwebapp-font-input;
     line-height: 0.85;
     //@include vendor-prefix(transition, "margin-left "+$animation-period+"ms ease-in-out");
@@ -169,11 +170,13 @@
 }
 
 .emuwebapp-shrinkBundleListSidebarWidthTo0px {
-    width: 0;
+    width: 0 !important;
+    min-width: 0 !important;
     @include vendor-prefix(transition, "width "+$animation-period+"ms");
 }
 
 .emuwebapp-expandBundleListSidebarWidthTo200px {
-    width: 240;
+    width: var(--bundle-width, 240px) !important;
+    min-width: var(--bundle-width, 240px) !important;
     @include vendor-prefix(transition, "width "+$animation-period+"ms");
 }
