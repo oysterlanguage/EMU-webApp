@@ -1,5 +1,24 @@
 # What's New
 
+## Version 1.6.0
+
+### new features / performance tweaks / improvements
+
+- allow attaching annotations via UI
+- add MP3 audio support
+- move playback and zoom toolbar to header
+- enable viewport scrubbing with mouse wheel
+- handle shift-scroll zoom
+- improve drag-and-drop bundle handling
+- make bundle sidebar width adaptive
+- adjust sidebar collapse behavior
+- allow creating new levels in annotation-free bundles
+- handle missing level definitions when creating annotations
+- improve local drop handling
+- add footer shortcut list and instrument level creation logging
+
+### bug fixes
+
 ## Version 1.5.1
 
 ### new features / performance tweaks / improvements

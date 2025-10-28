@@ -1,6 +1,6 @@
 {
   "name": "emuwebapp",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "The EMU-webApp is an online and offline Web-App for labeling, visualizing and correcting speech and derived speech data.",
   "main": "app/scripts/app.js",
   "author": "Raphael Winkelmann, Georg Raess, Markus Jochim",
@@ -8,7 +8,7 @@
   "readmeFilename": "README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/IPS-LMU/EMU-webApp"
+    "url": "https://github.com/oysterlanguage/EMU-webApp"
   },
   "dependencies": {
     "@angular/animations": "^5.0.0",
