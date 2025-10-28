@@ -81,6 +81,34 @@ describe('Service: DragnDropService', function () {
     expect(DragnDropService.getDragnDropData(1, 'annotation12')).toEqual(false);
   }));
 
+  it('should updateAnnotationForBundle', inject(function (DragnDropService, DragnDropDataService, SoundHandlerService) {
+    DragnDropService.bundleOrder = ['testBundle'];
+    DragnDropService.convertedByName = {
+      testBundle: {
+        name: 'testBundle',
+        mediaFile: {encoding: 'BASE64', data: 'dummy'},
+        annotation: {levels: [], links: [], sampleRate: 16000},
+        ssffFiles: []
+      }
+    };
+    DragnDropDataService.convertedBundles = [{
+      name: 'testBundle',
+      mediaFile: {encoding: 'BASE64', data: 'dummy'},
+      annotation: {levels: [], links: [], sampleRate: 16000},
+      ssffFiles: []
+    }];
+    SoundHandlerService.audioBuffer = {sampleRate: 48000};
+    spyOn(DragnDropService, 'handleLocalFiles').and.callFake(function(){});
+    spyOn(DragnDropDataService, 'setDefaultSession').and.callThrough();
+    var result = DragnDropService.updateAnnotationForBundle('testBundle', {levels: [], links: []});
+    expect(result.success).toBe(true);
+    expect(DragnDropDataService.setDefaultSession).toHaveBeenCalledWith(0);
+    expect(DragnDropService.handleLocalFiles).toHaveBeenCalled();
+    expect(DragnDropDataService.convertedBundles[0].annotation.sampleRate).toBe(48000);
+    SoundHandlerService.audioBuffer = undefined;
+    DragnDropService.resetToInitState();
+  }));
+
   it('should handleLocalFiles', inject(function (Wavparserservice,
                                                  Validationservice,
                                                  Iohandlerservice,

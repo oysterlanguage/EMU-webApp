@@ -77,6 +77,12 @@ let EmuWebAppComponent = {
                 ng-click="$ctrl.downloadAnnotationBtnClick();"><i class="material-icons">save</i>annotJSON</button>
                 
                 <button class="emuwebapp-mini-btn left" 
+                id="attachAnnotationBtn"
+                ng-show="$ctrl.ConfigProviderService.vals.activeButtons.downloadAnnotation" 
+                ng-disabled="!$ctrl.ViewStateService.getPermission('downloadAnnotationBtnClick')" 
+                ng-click="$ctrl.attachAnnotationBtnClick();"><i class="material-icons">note_add</i>attach annot</button>
+                
+                <button class="emuwebapp-mini-btn left" 
                 id="spectSettingsBtn" 
                 ng-show="$ctrl.ConfigProviderService.vals.activeButtons.specSettings" 
                 ng-disabled="!$ctrl.ViewStateService.getPermission('spectSettingsChange')" 
@@ -134,6 +140,7 @@ let EmuWebAppComponent = {
                 ng-click="$ctrl.aboutBtnClick();"><img src="assets/EMU-webAppEmu.svg" class="_35px" /></button>
             </div>
             <!-- top menu bar end -->
+            <input type="file" id="attachAnnotationInput" style="display:none" accept=".textgrid,.TextGrid,.json,.JSON,.annot.json,.Annot.json">
 
             <!-- start: media toolbar -->
             <div class="emuwebapp-media-toolbar">
@@ -392,6 +399,7 @@ let EmuWebAppComponent = {
 		'BrowserDetectorService',
 		'HierarchyLayoutService',
 		'HandleGlobalKeyStrokes',
+		'DragnDropService',
 		class EmuWebAppController{
         private $scope;
         private $element;
@@ -420,6 +428,9 @@ let EmuWebAppComponent = {
         private BrowserDetectorService;
 		private HierarchyLayoutService;
 		private HandleGlobalKeyStrokes;
+		private DragnDropService;
+		private attachAnnotationInput;
+		private attachAnnotationChangeListener;
 
         // init vars
 		private connectBtnLabel;
@@ -461,7 +472,8 @@ let EmuWebAppComponent = {
             ModalService,
             BrowserDetectorService,
 			HierarchyLayoutService,
-			HandleGlobalKeyStrokes){
+			HandleGlobalKeyStrokes,
+			DragnDropService){
             
                 this.$scope = $scope;
                 this.$element = $element;
@@ -490,6 +502,9 @@ let EmuWebAppComponent = {
                 this.BrowserDetectorService = BrowserDetectorService;
                 this.HierarchyLayoutService = HierarchyLayoutService;
 				this.HandleGlobalKeyStrokes = HandleGlobalKeyStrokes;
+				this.DragnDropService = DragnDropService;
+				this.attachAnnotationInput = undefined;
+				this.attachAnnotationChangeListener = undefined;
 
             	// init vars
 		        this.connectBtnLabel = 'connect';
@@ -536,6 +551,8 @@ let EmuWebAppComponent = {
             this.$element.bind('mouseleave', () => {
                 this.ViewStateService.mouseInEmuWebApp = false;
             });
+
+            this.initializeAttachAnnotationInput();
 
             var canvasEl = this.$element.find('.emuwebapp-canvas');
             var wheelHandler = (evt) => {
@@ -608,6 +625,11 @@ let EmuWebAppComponent = {
 
             this.$scope.$on('$destroy', () => {
                 canvasEl.off('wheel', wheelHandler);
+                if (this.attachAnnotationInput && this.attachAnnotationChangeListener) {
+                    this.attachAnnotationInput.removeEventListener('change', this.attachAnnotationChangeListener);
+                    this.attachAnnotationInput = undefined;
+                    this.attachAnnotationChangeListener = undefined;
+                }
             });
             
             // bind window resize event
@@ -1336,6 +1358,124 @@ let EmuWebAppComponent = {
 				if(this.ValidationService.validateJSO('emuwebappConfigSchema', this.DataService.getData())) {
 					this.ModalService.open('views/export.html', this.LoadedMetaDataService.getCurBndl().name + '_annot.json', angular.toJson(this.DataService.getData(), true));
 				}
+			}
+		};
+
+		/**
+		 *
+		 */
+		private attachAnnotationBtnClick() {
+			if (!this.ViewStateService.getPermission('downloadAnnotationBtnClick')) {
+				return;
+			}
+			if (!this.LoadedMetaDataService.getCurBndl() || !this.SoundHandlerService.audioBuffer) {
+				this.ModalService.open('views/error.html', 'No bundle is currently loaded. Please load an audio file before attaching annotations.');
+				return;
+			}
+			if (!this.attachAnnotationInput) {
+				this.initializeAttachAnnotationInput();
+			}
+			if (this.attachAnnotationInput) {
+				this.attachAnnotationInput.value = '';
+				this.attachAnnotationInput.click();
+			}
+		};
+
+		private initializeAttachAnnotationInput() {
+			const input = this.$element[0].querySelector('#attachAnnotationInput') as HTMLInputElement;
+			if (!input) {
+				return;
+			}
+			this.attachAnnotationInput = input;
+			this.attachAnnotationChangeListener = (event: Event) => {
+				const target = event.target as HTMLInputElement;
+				if (!target || !target.files || target.files.length === 0) {
+					return;
+				}
+				const file = target.files[0];
+				this.onAttachAnnotationFileSelected(file);
+				target.value = '';
+			};
+			input.addEventListener('change', this.attachAnnotationChangeListener);
+		};
+
+		private onAttachAnnotationFileSelected(file) {
+			const currentBundle = this.LoadedMetaDataService.getCurBndl();
+			if (!currentBundle || !currentBundle.name) {
+				this.ModalService.open('views/error.html', 'Unable to determine the current bundle. Please reload the audio file and try again.');
+				return;
+			}
+			const fileName = file.name || '';
+			const lowerName = fileName.toLowerCase();
+			const isTextGrid = lowerName.endsWith('.textgrid');
+			const isJson = lowerName.endsWith('.json');
+			if (!isTextGrid && !isJson) {
+				this.ModalService.open('views/error.html', 'Unsupported annotation format. Please select a .TextGrid or .json file.');
+				return;
+			}
+			this.ViewStateService.somethingInProgress = true;
+			this.ViewStateService.somethingInProgressTxt = 'Attaching annotation...';
+			const reader = new FileReader();
+			reader.onerror = () => {
+				this.ViewStateService.somethingInProgress = false;
+				this.ModalService.open('views/error.html', 'Error reading the selected file.');
+			};
+			if (isTextGrid) {
+				reader.onload = (evt) => {
+					const content = evt.target && evt.target.result ? evt.target.result.toString() : '';
+					this.TextGridParserService.asyncParseTextGrid(content, fileName, currentBundle.name).then((annotation) => {
+						this.finalizeAnnotationUpdate(annotation, currentBundle.name);
+					}, (err) => {
+						this.ViewStateService.somethingInProgress = false;
+						this.ModalService.open('views/error.html', 'Error parsing TextGrid file: ' + JSON.stringify(err, null, 4));
+					});
+				};
+				reader.readAsText(file);
+			} else {
+				reader.onload = (evt) => {
+					try {
+						const annotation = JSON.parse(evt.target && evt.target.result ? evt.target.result.toString() : '{}');
+						this.finalizeAnnotationUpdate(annotation, currentBundle.name);
+					} catch (e) {
+						this.ViewStateService.somethingInProgress = false;
+						const errMsg = e && e.message ? e.message : 'Unknown JSON parse error';
+						this.ModalService.open('views/error.html', 'Error parsing annotation JSON: ' + errMsg);
+					}
+				};
+				reader.readAsText(file);
+			}
+		};
+
+		private finalizeAnnotationUpdate(annotation, bundleName) {
+			if (!annotation) {
+				this.ViewStateService.somethingInProgress = false;
+				this.ModalService.open('views/error.html', 'Annotation data is empty or invalid.');
+				return;
+			}
+			const annCopy = angular.copy(annotation);
+			if (!annCopy.name) {
+				annCopy.name = bundleName;
+			}
+			if (!annCopy.annotates) {
+				annCopy.annotates = bundleName;
+			}
+			if (!annCopy.sampleRate && this.SoundHandlerService.audioBuffer && typeof this.SoundHandlerService.audioBuffer.sampleRate === 'number') {
+				annCopy.sampleRate = this.SoundHandlerService.audioBuffer.sampleRate;
+			}
+			const result = this.DragnDropService.updateAnnotationForBundle(bundleName, annCopy);
+			if (result && result.success) {
+				this.$scope.$applyAsync();
+			} else {
+				this.ViewStateService.somethingInProgress = false;
+				let message = 'Error attaching annotation.';
+				if (result && result.error) {
+					if (typeof result.error === 'string') {
+						message += ' ' + result.error;
+					} else {
+						message += ' ' + JSON.stringify(result.error, null, 4);
+					}
+				}
+				this.ModalService.open('views/error.html', message);
 			}
 		};
 

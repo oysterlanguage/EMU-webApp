@@ -190,6 +190,59 @@ class DragnDropService{
 		});
 	};
 	
+	public updateAnnotationForBundle(bundleName, annotation) {
+		var result:any = {
+			success: false
+		};
+		if (!bundleName) {
+			result.error = 'Bundle name is undefined';
+			return result;
+		}
+		if (!annotation) {
+			result.error = 'Annotation is undefined';
+			return result;
+		}
+		var clone = angular.copy(annotation);
+		if (!clone.name) {
+			clone.name = bundleName;
+		}
+		if (!clone.annotates) {
+			clone.annotates = bundleName;
+		}
+		if (!clone.sampleRate && this.SoundHandlerService.audioBuffer && typeof this.SoundHandlerService.audioBuffer.sampleRate === 'number') {
+			clone.sampleRate = this.SoundHandlerService.audioBuffer.sampleRate;
+		}
+		var validation = this.ValidationService.validateJSO('annotationFileSchema', clone);
+		if (validation !== true) {
+			result.error = validation;
+			return result;
+		}
+		var stored = this.convertedByName[bundleName];
+		if (!stored) {
+			result.error = 'Bundle not found: ' + bundleName;
+			return result;
+		}
+		stored.annotation = angular.copy(clone);
+		var index = -1;
+		this.DragnDropDataService.convertedBundles.forEach((bundle, i) => {
+			if (bundle.name === bundleName) {
+				bundle.annotation = angular.copy(clone);
+				index = i;
+			}
+		});
+		if (index === -1) {
+			result.error = 'Bundle not registered in converted bundle list: ' + bundleName;
+			return result;
+		}
+		if (this.bundleOrder.indexOf(bundleName) === -1) {
+			this.bundleOrder.push(bundleName);
+		}
+		this.DragnDropDataService.setDefaultSession(index);
+		this.handleLocalFiles();
+		result.success = true;
+		return result;
+	};
+
 	public resetToInitState() {
 		delete this.drandropBundles;
 		this.drandropBundles = [];
@@ -270,22 +323,22 @@ class DragnDropService{
 					const base64Audio = this.BinaryDataManipHelperService.arrayBufferToBase64(res);
 					this.WavParserService.parseWavAudioBuf(res).then((audioBuffer) => {
 						this.SoundHandlerService.audioBuffer = audioBuffer;
-					var converted: any = {
-						name: data.name,
-						mediaFile: {
-							encoding: 'BASE64',
-							data: base64Audio
-						},
-						ssffFiles: []
-					};
-					var finalize = () => {
-						var stored = angular.copy(converted);
-						stored.name = data.name;
-						this.convertedByName[data.name] = stored;
-						this.convertDragnDropData(bundles, i + 1).then(() => {
-							defer.resolve();
-						}, (err) => defer.reject(err));
-					};
+						var converted: any = {
+							name: data.name,
+							mediaFile: {
+								encoding: 'BASE64',
+								data: base64Audio
+							},
+							ssffFiles: []
+						};
+						var finalize = () => {
+							var stored = angular.copy(converted);
+							stored.name = data.name;
+							this.convertedByName[data.name] = stored;
+							this.convertDragnDropData(bundles, i + 1).then(() => {
+								defer.resolve();
+							}, (err) => defer.reject(err));
+						};
 						if (data.annotation === undefined) {
 							converted.annotation = {
 								levels: [],
